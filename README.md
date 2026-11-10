@@ -1,0 +1,1 @@
+# thoughts.rodrigojazinski.com
