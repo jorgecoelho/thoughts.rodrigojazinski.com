@@ -1,0 +1,4 @@
+# robots.txt for thoughts.rodrigojazinski.com
+
+User-agent: *
+Allow: /
