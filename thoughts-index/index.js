@@ -30,6 +30,22 @@
     else window.prompt("Citation", text);
   });
 
+  /* bookmarks are placed by the reader inside each thought; here they only show */
+  thoughts.forEach(function (t) {
+    var b;
+    try { b = JSON.parse(localStorage.getItem("bookmark:" + t.id) || "null"); } catch (e) { b = null; }
+    var read = t.querySelector(".act-primary");
+    if (!b || !b.anchor || !read) return;
+    t.classList.add("bm-thought");
+    t.querySelector(".spine").insertAdjacentHTML("beforeend", '<span class="bm-sr"> (bookmarked)</span>');
+    var a = document.createElement("a");
+    a.className = "act act-bm";
+    a.href = read.getAttribute("href") + "#" + b.anchor;
+    a.textContent = "Return to your bookmark: " + b.label + " ";
+    a.insertAdjacentHTML("beforeend", '<span aria-hidden="true">→</span>');
+    read.parentNode.insertBefore(a, read.nextSibling);
+  });
+
   var target = location.hash && document.getElementById(location.hash.slice(1));
   if (target && target.classList.contains("thought")) setOpen(target, true);
 })();

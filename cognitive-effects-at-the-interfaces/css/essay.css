@@ -520,3 +520,36 @@ html:not(.js) .ledger-tools, html:not(.js) .say { display: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ------------------------------------------------------------------ bookmark (added by the script) */
+.bm-able { position: relative; }
+.bm {
+  position: absolute; left: -1.85rem; top: 0.1em; width: 1.35rem; height: 1.75rem; padding: 0.15rem 0.3rem;
+  border: 0; border-radius: 4px; background: none; color: var(--muted); cursor: pointer;
+  opacity: 0; transition: opacity 0.2s; user-select: none; -webkit-user-select: none;
+}
+.bm svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+.bm-able:hover > .bm, .bm:focus-visible, .bm[aria-pressed="true"] { opacity: 1; }
+.bm:hover, .bm:focus-visible { color: var(--accent); }
+.bm:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bm[aria-pressed="true"] { color: var(--accent); }
+.bm[aria-pressed="true"] svg, .bm-on::before { fill: var(--accent); stroke: var(--accent); }
+.bm-on::before {
+  content: ""; position: absolute; left: -1.55rem; top: 0.25em; width: 0.75rem; height: 1.15rem; background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
+}
+.bm-on.flash { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 4px; transition: background 0.4s; }
+.bm-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.bm-panel .spine::after {
+  content: ""; position: absolute; width: 0.5rem; height: 0.7rem; background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
+}
+@media (min-width: 900px) { html.js .bm-panel .spine::after { top: 4px; left: 50%; margin-left: -0.25rem; } }
+@media (max-width: 899px) {
+  .bm-panel .spine { position: relative; }
+  .bm-panel .spine::after { top: 0; right: 1rem; }
+  .bm { left: -1.15rem; width: 1.1rem; padding: 0.15rem 0.15rem; }
+  .bm-on::before { left: -0.95rem; width: 0.6rem; height: 0.95rem; }
+}
+.panel.open.bm-panel .spine::after { background: var(--sheet); }
+@media print { .bm, .bm-on::before { display: none !important; } }

@@ -16,11 +16,18 @@
   var TITLE = "Shaped at the Threshold";
   var store = {
     get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) { /* private mode */ } }
   };
 
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function el(tag, attrs, html) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
   function escHtml(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function scroller(p) { return p.querySelector(".panel-scroll"); }
   function gradeClass(g) { return g === "Open (untested)" ? "openu" : /^Open/.test(g) ? "open" : g === "Not graded" ? "none" : g.toLowerCase(); }
@@ -50,7 +57,6 @@
       });
       current = p;
       if (!opts.keepScroll) scroller(p).scrollTop = 0;
-      if (id !== "cover") store.set("sat-last", id);
       document.title = (id === "cover" ? "" : p.querySelector(".spine-label").textContent + " — ") + TITLE;
     }
     if (narrow.matches && !opts.noScroll) {
@@ -247,7 +253,7 @@
     s.addEventListener("mouseleave", function () { clearTimeout(glTimer); });
   });
 
-  /* ------------------------------------------------------------ settings, citation, resume */
+  /* ------------------------------------------------------------ settings, citation */
   $("[data-theme-toggle]").addEventListener("click", function () {
     var root = document.documentElement;
     var dark = root.dataset.theme ? root.dataset.theme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -267,13 +273,96 @@
       else window.prompt("Citation", CITE);
     });
   });
-  var last = store.get("sat-last");
-  var resume = $(".resume");
-  if (resume && last && last !== "cover" && document.getElementById(last)) {
-    resume.hidden = false;
-    resume.querySelector("a").setAttribute("href", "#" + last);
-    resume.querySelector("span").textContent = document.querySelector("#" + last + " .spine-label").textContent;
+  /* ------------------------------------------------------------ bookmark
+     One ribbon per thought, placed only when the reader presses it. Stored under
+     "bookmark:<slug>" so the index can show it too. Added at run time: the built
+     page, and so the paper's text, is unchanged. */
+  var BM_KEY = "bookmark:shaped-at-the-threshold";
+  store.del("sat-last");
+  var bmNodes = $$(".panel:not(#cover) .prose p, .panel:not(#cover) .prose li").filter(function (n) {
+    return !n.closest("figure, table, nav, .explore, .ledger-tools") && !(n.tagName === "LI" && n.querySelector("p"));
+  });
+  var ribbon = el("button", { "class": "bm", type: "button" });
+  ribbon.innerHTML = '<svg viewBox="0 0 12 18" aria-hidden="true"><path d="M1 1h10v16l-5-4-5 4z"/></svg>';
+  var bmHost = null, marked = null;
+  function snip(n) { return n.textContent.replace(/\s+/g, " ").trim().slice(0, 60); }
+  function inPanel(p) { return bmNodes.filter(function (n) { return n.closest(".panel") === p; }); }
+  function bmSet(node, save) {
+    if (marked) {
+      marked.classList.remove("bm-on");
+      if (marked.id === "bookmark") marked.removeAttribute("id");
+      var old = marked.closest(".panel");
+      old.classList.remove("bm-panel");
+      var sr = old.querySelector(".bm-sr"); if (sr) sr.remove();
+    }
+    marked = node;
+    var resume = $(".resume");
+    if (!node) {
+      if (save) store.del(BM_KEY);
+      if (resume) resume.hidden = true;
+      bmLabel();
+      return;
+    }
+    var p = node.closest(".panel"), list = inPanel(p);
+    node.classList.add("bm-on");
+    if (!node.id) node.id = "bookmark";
+    p.classList.add("bm-panel");
+    p.querySelector(".spine").appendChild(el("span", { "class": "bm-sr" }, " (bookmarked)"));
+    var label = p.querySelector(".spine-label").textContent + ", paragraph " + (list.indexOf(node) + 1);
+    if (save) store.set(BM_KEY, JSON.stringify({ panel: p.id, n: list.indexOf(node), snip: snip(node), anchor: node.id, label: label }));
+    if (resume) {
+      resume.hidden = false;
+      resume.querySelector("a").setAttribute("href", "#" + node.id);
+      resume.querySelector("span").textContent = label;
+    }
+    bmLabel();
   }
+  function bmLabel() {
+    var on = bmHost && bmHost === marked;
+    ribbon.setAttribute("aria-label", on ? "Remove bookmark" : "Bookmark this paragraph");
+    ribbon.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+  function bmShow(node) {
+    if (bmHost === node) return;
+    bmHost = node;
+    node.appendChild(ribbon);
+    bmLabel();
+  }
+  function bmToggle(node) { bmSet(node === marked ? null : node, true); if (bmHost !== node) bmShow(node); bmLabel(); }
+  bmNodes.forEach(function (n) { n.classList.add("bm-able"); });
+  document.addEventListener("mouseover", function (e) {
+    var n = e.target.closest && e.target.closest(".bm-able");
+    if (n) bmShow(n);
+  });
+  document.addEventListener("click", function (e) {
+    if (e.target.closest(".bm")) { e.preventDefault(); bmToggle(bmHost); return; }
+    var n = e.target.closest(".bm-able");
+    if (!n || e.target.closest("a, button, input, select, textarea, .gl")) return;
+    var sel = window.getSelection && window.getSelection();
+    if (sel && !sel.isCollapsed) return;
+    bmShow(n);
+  });
+  /* keyboard: B bookmarks the paragraph with the ribbon, or the first one in view */
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    if (e.key !== "b" && e.key !== "B") return;
+    if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
+    if (!current || current.id === "cover") return;
+    var node = bmHost && bmHost.closest(".panel") === current ? bmHost : null;
+    if (!node) node = inPanel(current).filter(function (n) { var r = n.getBoundingClientRect(); return r.bottom > 80 && r.top < window.innerHeight; })[0];
+    if (!node) return;
+    e.preventDefault();
+    bmToggle(node);
+    ribbon.focus({ preventScroll: true });
+  });
+  (function () {
+    var saved;
+    try { saved = JSON.parse(store.get(BM_KEY) || "null"); } catch (err) { saved = null; }
+    if (!saved) return;
+    var p = document.getElementById(saved.panel), list = p && p.classList.contains("panel") ? inPanel(p) : [];
+    var node = list[saved.n] && snip(list[saved.n]) === saved.snip ? list[saved.n] : list.filter(function (n) { return snip(n) === saved.snip; })[0];
+    if (node) bmSet(node, !!(saved.anchor !== (node.id || "bookmark"))); else store.del(BM_KEY);
+  })();
 
   /* ------------------------------------------------------------ sound: one recording at a time */
   var player = { audio: null, stop: null };
