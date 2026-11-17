@@ -21,6 +21,15 @@
     });
   });
 
+  /* light or dark: follows the system until the reader chooses; the choice is kept as "idx-theme" */
+  var toggle = document.querySelector("[data-theme-toggle]");
+  if (toggle) toggle.addEventListener("click", function () {
+    var root = document.documentElement;
+    var dark = root.dataset.theme ? root.dataset.theme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("idx-theme", root.dataset.theme); } catch (err) { /* private mode */ }
+  });
+
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-cite]");
     if (!b) return;

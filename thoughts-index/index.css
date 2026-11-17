@@ -15,10 +15,13 @@
   --spine-h: clamp(8.5rem, 21vh, 15rem);
   color-scheme: light;
 }
+/* Dark follows the reader's system unless they choose with the toggle (data-theme, kept as "idx-theme") */
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #121314; --paper: #18191b; --ink: #ecebe6; --ink-2: #c9c6be; --muted: #8f8b82; --rule: #2c2d30; color-scheme: dark; }
-  .thought { --accent: var(--accent-dark) !important; }
+  :root:not([data-theme="light"]) { --bg: #121314; --paper: #18191b; --ink: #ecebe6; --ink-2: #c9c6be; --muted: #8f8b82; --rule: #2c2d30; color-scheme: dark; }
+  :root:not([data-theme="light"]) .thought { --accent: var(--accent-dark) !important; }
 }
+:root[data-theme="dark"] { --bg: #121314; --paper: #18191b; --ink: #ecebe6; --ink-2: #c9c6be; --muted: #8f8b82; --rule: #2c2d30; color-scheme: dark; }
+:root[data-theme="dark"] .thought { --accent: var(--accent-dark) !important; }
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -63,7 +66,8 @@ button { font: inherit; color: inherit; }
 .spine-art { position: absolute; inset: 0 0 0 38%; z-index: 0; }
 .spine-art img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15); opacity: 0.16; mix-blend-mode: multiply; transition: opacity 0.5s, filter 0.5s; }
 .spine-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--bg) 0%, transparent 45%); }
-@media (prefers-color-scheme: dark) { .spine-art img { mix-blend-mode: screen; filter: grayscale(1) invert(1); opacity: 0.12; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .spine-art img { mix-blend-mode: screen; filter: grayscale(1) invert(1); opacity: 0.12; } }
+:root[data-theme="dark"] .spine-art img { mix-blend-mode: screen; filter: grayscale(1) invert(1); opacity: 0.12; }
 .spine:hover .spine-art img, .thought.open .spine-art img { opacity: 0.3; filter: grayscale(0.6) contrast(1.1); }
 .spine > span { position: relative; z-index: 1; }
 .spine-num { align-self: start; font: 700 clamp(1rem, 0.8rem + 0.8vw, 1.6rem)/1 var(--grot); color: var(--accent); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
@@ -141,3 +145,26 @@ html:not(.js) .spine-cue { display: none; }
   body { background: #fff; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+/* Cards drawn in the opposite scheme (thoughts.json "inverted": the catalogues −01 and −02) */
+.thought.inverted { --bg: #141414; --paper: #1c1c1d; --ink: #f3f1ec; --ink-2: #cfccc4; --muted: #9a968d; --rule: #333436; --accent: var(--accent-dark) !important;
+  background: var(--bg); color: var(--ink); border-bottom-color: var(--rule); color-scheme: dark; }
+.thought.inverted .act-primary { color: var(--paper); }
+.thought.inverted .act-primary:hover, .thought.inverted .act:hover { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .thought.inverted { --bg: #f3f1ec; --paper: #faf9f6; --ink: #141414; --ink-2: #3d3b37; --muted: #8a867d; --rule: #d9d5cb; --accent: var(--accent-light) !important; color-scheme: light; }
+}
+:root[data-theme="dark"] .thought.inverted { --bg: #f3f1ec; --paper: #faf9f6; --ink: #141414; --ink-2: #3d3b37; --muted: #8a867d; --rule: #d9d5cb; --accent: var(--accent-light) !important; color-scheme: light; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Light or dark toggle, as on the thought pages */
+.mast { position: relative; }
+.theme-toggle { position: absolute; top: clamp(1.1rem, 3.4vw, 2.6rem); right: var(--gutter); width: 2.4rem; height: 2.4rem; display: grid; place-items: center;
+  border: 1px solid transparent; border-radius: 6px; background: none; color: var(--ink); cursor: pointer; }
+.theme-toggle:hover { border-color: var(--rule); background: var(--paper); }
+.theme-toggle svg { width: 18px; height: 18px; fill: currentColor; }
+@media print { .theme-toggle { display: none; } }
+.card-name { font-style: normal; font-weight: 700; font-family: var(--grot); color: var(--ink); letter-spacing: -0.01em; }
+/* "title_one_line": the title keeps to one line, shrinking with its column when it must (container units) */
+.spine-title-one { container-type: inline-size; }
+.spine-title-one .st-in { display: block; white-space: nowrap; font-size: min(1em, calc(100cqi / 10.9)); }
